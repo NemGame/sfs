@@ -1,0 +1,3 @@
+? WSBU
+version = 2.2.0.1
+path = app%2FWSBU%2FWSBU.exe
