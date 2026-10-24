@@ -38,12 +38,6 @@ int __main() {
         return 1;
     }
 
-    try {
-        fs::FixDirectoryTree();
-    } catch (const std::exception& e) {
-        std::cerr << "FixDirectoryTree: " << e.what() << std::endl;
-        return 1;
-    }
     run_server(6969);
 
     return 0;

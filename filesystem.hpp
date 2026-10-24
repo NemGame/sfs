@@ -146,36 +146,13 @@ namespace fs {
         root->next = nodes;
         return root;
     }
-    void UnifyDirectoryTree(const wstring& subpath) {
-        // Create in every drive first (with parents), then collect children, then recurse,
-        // so no directory is created while iterating and parents always exist.
-        vector<wstring> children;
-        for (auto& drive : drives) {
-            fs::create_directories(drive.path + SEPARATOR + subpath);
-        }
-        for (auto& drive : drives) {
-            for (const auto& entry : fs::directory_iterator(drive.path + SEPARATOR + subpath)) {
-                if (entry.is_directory()) {
-                    wstring child = subpath + SEPARATOR + entry.path().filename().wstring();
-                    if (find(children.begin(), children.end(), child) == children.end())
-                        children.push_back(child);
-                }
-            }
-        }
-        for (const auto& child : children) {
-            UnifyDirectoryTree(child);
-        }
-    }
-    void FixDirectoryTree() {
-        vector<wstring> tops;
+    Node<wstring>* GetUnifiedDirectoryTree() {
+        Node<wstring>* root = new Node(TARGET_NAME);
+        vector<Node<wstring>*> nodes;
         for (const auto& drive : drives) {
-            for (const auto& entry : fs::directory_iterator(drive.path)) {
-                if (entry.is_directory()) {
-                    wstring name = entry.path().filename().wstring();
-                    if (find(tops.begin(), tops.end(), name) == tops.end()) tops.push_back(name);
-                }
-            }
+            nodes.push_back(getNodeForPath(drive.path));
         }
-        for (const auto& name : tops) UnifyDirectoryTree(name);
+        root->next = nodes;
+        return root;
     }
 }
