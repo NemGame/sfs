@@ -11,5 +11,5 @@
 
 ## /api/files request
 ### Average: 115.10779000001662 ms over 20000 requests (took ~1:06:40)
-### Average: ~85ms over 200 requests (will re-test)
-- Added Security Layer (so ~60ms faster AND has an extra layer)
+### Average: 75.5982450000016 ms over 20000 requests
+- Added Security Layer (so ~40ms faster AND has an extra layer)
