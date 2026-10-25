@@ -52,6 +52,20 @@ void process_command(const std::string& command, SOCKET client_socket) {
             if (i < nodes.size() - 1) send(client_socket, ",", 1, 0);
         }
         send(client_socket, "]}\n", strlen("]}\n"), 0);
+    } else if (command[0] == 'F' && command.size() > 1 && command[1] == 'P') {
+        std::wstring subpath;
+        for (size_t i = 2; i < command.size(); ++i) {
+            if (command[i] == '\r' || command[i] == '\n') continue;
+            subpath += command[i];
+        }
+        std::wstring full_path = fs::FullPathOf(subpath);
+        if (full_path.empty()) {
+            const char* empty_reply = "\n";
+            send(client_socket, empty_reply, strlen(empty_reply), 0);
+            return;
+        }
+        const std::string utf8_reply = wide_to_utf8(full_path, true) + "\n";
+        send(client_socket, utf8_reply.c_str(), utf8_reply.size(), 0);
     }
     else if (command == "STOP") {
         kill_socket(client_socket);

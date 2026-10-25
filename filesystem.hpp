@@ -157,4 +157,28 @@ namespace fs {
         root->next = nodes;
         return root;
     }
+    wstring FullPathOf(const wstring& subpath) {
+        #if EXCESSIVE_ERRORCHECK
+        vector<wstring> found;
+        #endif
+        for (const auto& drive : drives) {
+            wstring full_path = drive.path + subpath;
+            if (fs::exists(full_path)) {
+                #if EXCESSIVE_ERRORCHECK
+                found.push_back(full_path);
+                #else
+                return full_path;
+                #endif
+            }
+        }
+        #if EXCESSIVE_ERRORCHECK
+        if (found.size() > 1) {
+            wcerr << "Multiple matches found for subpath: " << subpath << L"\n";
+            for (const auto& f : found) {
+                wcerr << f << L"\n";
+            }
+        }
+        #endif
+        return L"";
+    }
 }

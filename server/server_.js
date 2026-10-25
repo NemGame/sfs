@@ -49,6 +49,19 @@ app.get("/api/files", (req, res) => {
     });
 });
 
+app.get("/api/download", (req, res) => {
+    const cpath = normalizePath(decodeURIComponent(req.query.path || ""));
+    if (!cpath) return res.status(400).send("Missing path.");
+    sfs.send(`FP${cpath}`).then(fullPath => {
+        if (!fullPath) return res.status(404).send("File not found");
+        //res.redirect(`/api/download?path=${encodeURIComponent(fullPath)}`);
+        res.download(fullPath);
+    }).catch(err => {
+        error(`Error getting full path: ${err.message}`);
+        res.status(500).send(`Error: ${err.message}`);
+    });
+});
+
 // Structure
 // Folders - present in every root\publicfoldername, so all have same structure
 // Files - different in each root\publicfoldername, root1\publicfoldername may have fileA, root2\publicfoldername may not
@@ -63,54 +76,6 @@ const publicfoldername = "public";
 const searchRoots = [
     "/mnt"
 ];
-
-app.get("/api/download", (req, res) => {
-    // Unimplemented
-    return res.status(501).send("Download not implemented");
-	log(req.headers["x-forwarded-for"], "\n===========Download=Request===========");
-	const cpath = normalizePath(req.query.path);
-    if (!cpath) return res.status(400).send("Missing path.");
-	log(req.headers["x-forwarded-for"], "Requested download for path: " + cpath);
-    const fullPath = fullPathOf(cpath, true);
-    if (!fullPath || !fs.existsSync(fullPath)) {
-		error(`Non-existant download request: ${cpath}`);
-        return res.status(404).send("File not found");
-    }
-    fs.stat(fullPath, (err, stats) => {
-        if (err || !stats.isFile()) {
-            error(`File not found or error: ${fullPath}`);
-            return res.status(404).send("File not found");
-        }
-
-        const fileName = path.basename(fullPath);
-        log(req.headers["x-forwarded-for"], `Starting stream for: ${fileName} (${stats.size} bytes)`);
-
-        // 2. Set headers
-        res.writeHead(200, {
-            'Content-Length': stats.size,
-            'Content-Type': 'application/octet-stream',
-            'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-            'X-Content-Type-Options': 'nosniff'
-        });
-
-        // 3. Create stream with a specific highWaterMark (buffer size) 
-        // 64KB is usually sweet for Raspberry Pi USB overhead
-        const fileStream = fs.createReadStream(fullPath, { highWaterMark: 64 * 1024 });
-
-        fileStream.pipe(res);
-
-        fileStream.on('error', (streamErr) => {
-            error("Stream error:", streamErr);
-            if (!res.headersSent) res.status(500).send("Stream failed");
-            else res.end();
-        });
-
-        // Cleanup if user cancels download
-        req.on('close', () => {
-            fileStream.destroy();
-        });
-    });
-});
 
 // Like download
 // Satisfies <script src="drive.ngakos.lol/api/server/-filepath-.js"></script>
@@ -406,36 +371,6 @@ app.get("/api/delete", (req, res) => {
         log(req.headers["x-forwarded-for"], stdout, "\n");
         res.status(200).send({status: "success", message: `Deleted ${type} at ${fpath}`});
     });
-});
-
-app.get("/api/full", (req, res) => {
-    return res.status(501).send("Full path not implemented");
-    log(req.headers["x-forwarded-for"], "\n===========FullPath=Request===========");
-    const cpath = normalizePath(req.query.path) || "";
-    log(req.headers["x-forwarded-for"], "Requested full path for: " + cpath);
-    const fullPath = fullPathOf(cpath, true);
-    if (!fullPath) {
-        error(`Non-existant full path request: ${cpath}`);
-        return res.status(404).json({error: "Nope"});
-    }
-    res.json({fullPath: fullPath});
-});
-
-app.get("/api/space/json", (req, res) => {
-    return res.status(501).send("Space not implemented");
-	log(req.headers["x-forwarded-for"], "\n============Space=Request============");
-	exec(`"${subfilesys}" -space`, (err, stdout, stderr) => {
-		if (err) {
-			error(`Error executing space command: ${err.message}`);
-			return res.status(500).send(`Error: ${err.message}`);
-		}
-		if (stderr) {
-			error(`Space command stderr: ${stderr}`);
-			return res.status(500).send(`Error: ${stderr}`);
-		}
-		log(req.headers["x-forwarded-for"], stdout, "\n");
-		res.status(200).send("");
-	});
 });
 
 //#region Appdata
