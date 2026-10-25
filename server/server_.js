@@ -27,6 +27,28 @@ app.get("/api/space", (req, res) => {
     });
 });
 
+// {"name":"Alya","source":"/mnt/sda/public/","root":"/mnt/sda","path":"","fullpath":"/Alya","isDirectory":true,"extension":"","size":"573.92 MB"}
+// {"name":"Alya","isDirectory":true}
+app.get("/api/files", (req, res) => {
+    log(req.headers["x-forwarded-for"], "\n===========Files=Request===========");
+    const dir = req.query.dir ? normalizePath(req.query.dir) : "/";
+    const key = req.query.key || "default";
+    log(req.headers["x-forwarded-for"], "Requesting contents in directory: " + dir);
+    sfs.send(`P${dir}:${key}`).then(contentsStr => {
+        //const json = JSON.parse(contents);
+        let contents = {};
+        try {
+            contents = JSON.parse(contentsStr);
+        } catch (err) {
+            error(`Error parsing contents: ${contentsStr}\n${err.message}`);
+        }
+        res.status(200).json(contents);
+    }).catch(err => {
+        error(`Error getting files: ${err.message}`);
+        res.status(500).send(`Error: ${err.message}`);
+    });
+});
+
 // Structure
 // Folders - present in every root\publicfoldername, so all have same structure
 // Files - different in each root\publicfoldername, root1\publicfoldername may have fileA, root2\publicfoldername may not
@@ -42,41 +64,9 @@ const searchRoots = [
     "/mnt"
 ];
 
-app.get("/api/files", (req, res) => {
-	log(req.headers["x-forwarded-for"], "\n===========Search=Request===========")
-	// get args like ?dir=
-	const dir = normalizePath(req.query.dir) || "";
-	log(req.headers["x-forwarded-for"], "Requesting to see " + dir);
-	let allContents = [];
-	searchRoots.forEach((root) => {
-		log(req.headers["x-forwarded-for"], "Found root: " + root);
-		try {
-			if (fs.existsSync(root)) {
-				if (root.endsWith(publicfoldername)) {
-					log(req.headers["x-forwarded-for"], `Found ${publicfoldername} in root: ${root}`);
-					readDirSafe(path.join(root, dir), allContents);
-				} else {
-					const drives = fs.readdirSync(root);
-					drives.forEach(drive => {
-						log(req.headers["x-forwarded-for"], `Searching drive: ${drive}`);
-						const drivePublicPath = path.join(root, drive, publicfoldername);
-						log(req.headers["x-forwarded-for"], `Drive path is ${drivePublicPath}`);
-						if (fs.existsSync(drivePublicPath)) {
-							log(req.headers["x-forwarded-for"], `Found ${publicfoldername} in drive: ${drivePublicPath}`);
-							readDirSafe(path.join(drivePublicPath, dir), allContents, true);
-						}
-					});
-				}
-			}
-		} catch (err) {
-			error(`Error scanning ${root}:`, err.message);
-		}
-	});
-	res.json({contents:allContents});
-	log(req.headers["x-forwarded-for"], `Found folders: ${allContents.map(item => item.name).join(", ")}`);
-});
-
 app.get("/api/download", (req, res) => {
+    // Unimplemented
+    return res.status(501).send("Download not implemented");
 	log(req.headers["x-forwarded-for"], "\n===========Download=Request===========");
 	const cpath = normalizePath(req.query.path);
     if (!cpath) return res.status(400).send("Missing path.");
@@ -125,6 +115,7 @@ app.get("/api/download", (req, res) => {
 // Like download
 // Satisfies <script src="drive.ngakos.lol/api/server/-filepath-.js"></script>
 app.get("/api/serve", (req, res) => {
+    return res.status(501).send("Serve not implemented");
     log(req.headers["x-forwarded-for"], "\n=============Serve=Request============");
     const cpath = normalizePath(req.query.path || "");
     if (!cpath) return res.status(400).send("Missing path.");
@@ -177,6 +168,7 @@ app.get("/api/serve", (req, res) => {
 });
 
 app.get("/api/add", (req, res) => {
+    return res.status(501).send("Add not implemented");
     log(req.headers["x-forwarded-for"], "\n==============Add=Request=============");
     const fpath = normalizePath(req.query.path), type = req.query.type;
     if (!fpath) return res.status(400).send("Missing path.");
@@ -208,6 +200,7 @@ app.get("/api/add", (req, res) => {
 });
 
 app.post("/rename", (req, res) => {
+    return res.status(501).send("Rename not implemented");
     log(req.headers["x-forwarded-for"], "\n===========Rename=Request===========");
     const { oldpath, newname } = req.body;
     const noldpath = normalizePath(oldpath || "");
@@ -236,6 +229,7 @@ app.post("/rename", (req, res) => {
 });
 
 app.get("/api/fix", (req, res) => {
+    return res.status(501).send("Fix not implemented");
     log(req.headers["x-forwarded-for"], "\n===========Fixing=Structure==========");
     fixFolderStructure();
     res.json({status: "success", message: "Fix command executed."});
@@ -244,6 +238,7 @@ app.get("/api/fix", (req, res) => {
 let uploadKeys = {};
 // Returns {key:number, id:number} tied to the filename
 app.get("/api/requestkey/:filename", (req, res) => {
+    return res.status(501).send("Request key not implemented");
     const filename = req.params.filename;
     const key = Math.floor(Math.random() * 0xFF);
     const id = Date.now();
@@ -256,6 +251,7 @@ app.get("/api/requestkey/:filename", (req, res) => {
 });
 
 app.get("/api/safeupload", (req, res) => {
+    return res.status(501).send("Safe upload not implemented");
     log(req.headers["x-forwarded-for"], "\n===========SafeUpload=Request===========");
     const key = req.query.key;
     const id = req.query.id;
@@ -326,6 +322,7 @@ app.get("/api/safeupload", (req, res) => {
 let uploadID = Number.MIN_SAFE_INTEGER;
 let uploadIDs = new Set();
 app.post("/api/upload", (req, res) => {
+    return res.status(501).send("Upload not implemented");
     const ID = ++uploadID;
     if (uploadID > Number.MAX_SAFE_INTEGER) uploadID = Number.MIN_SAFE_INTEGER;
 
@@ -390,6 +387,7 @@ app.post("/api/upload", (req, res) => {
 });
 
 app.get("/api/delete", (req, res) => {
+    return res.status(501).send("Delete not implemented");
     log(req.headers["x-forwarded-for"], "\n===========Delete=Request===========");
     const fpath = req.query.path, type = req.query.type;
     if (!fpath) return res.status(400).send("Missing path.");
@@ -411,6 +409,7 @@ app.get("/api/delete", (req, res) => {
 });
 
 app.get("/api/full", (req, res) => {
+    return res.status(501).send("Full path not implemented");
     log(req.headers["x-forwarded-for"], "\n===========FullPath=Request===========");
     const cpath = normalizePath(req.query.path) || "";
     log(req.headers["x-forwarded-for"], "Requested full path for: " + cpath);
@@ -423,6 +422,7 @@ app.get("/api/full", (req, res) => {
 });
 
 app.get("/api/space/json", (req, res) => {
+    return res.status(501).send("Space not implemented");
 	log(req.headers["x-forwarded-for"], "\n============Space=Request============");
 	exec(`"${subfilesys}" -space`, (err, stdout, stderr) => {
 		if (err) {
@@ -494,6 +494,7 @@ app.get("/api/alive", (req, res) => {
 let hosted = {}; // path:str{port:num, process:ChildProcess}
 
 app.get("/host", (req, res) => {
+    return res.status(501).send("Host not implemented");
     log(req.headers["x-forwarded-for"], "\n===========Host=Request===========");
     const dir = req.query.dir;
     if (!dir) {
@@ -525,6 +526,7 @@ app.get("/host", (req, res) => {
 });
 
 app.use(/\/host\/j\/.*/, (req, res, next) => {
+    return res.status(501).send("Proxy not implemented");
     const port = req.originalUrl.split("/")[3];
     if (!Object.values(hosted).some(x => x.port == port)) res.status(400).send("No server is running on port: " + port);
     log(req.headers["x-forwarded-for"], `Proxying request to hosted directory on port ${port} ; ${req.originalUrl}`);
